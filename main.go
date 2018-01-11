@@ -6,9 +6,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/log"
 	httptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -53,6 +55,18 @@ type countResponse struct {
 	V int `json:"v"`
 }
 
+type Middleware func(Endpoint) Endpoint
+
+func loggingMiddleware(logger log.Logger) Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (interface{}, error) {
+			logger.Log("msg", "calling endpoint")
+			defer logger.Log("msg", "called endpoint")
+			return next(ctx, request)
+		}
+	}
+}
+
 // Endpoints are a primary abstraction in go-kit. An endpoint represents a single RPC (method in our service interface)
 func makeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
@@ -75,6 +89,7 @@ func makeCountEndpoint(svc StringService) endpoint.Endpoint {
 
 // Transports expose the service to the network. In this first example we utilize JSON over HTTP.
 func main() {
+	logger := log.NewLogfmtLogger(os.Stderr)
 	svc := stringService{}
 
 	uppercaseHandler := httptransport.NewServer(
