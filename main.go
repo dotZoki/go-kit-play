@@ -4,13 +4,18 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
+	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	httptransport "github.com/go-kit/kit/transport/http"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 )
 
 // ------------------------------------------------
+
 // Middleware type
 type Middleware func(endpoint.Endpoint) endpoint.Endpoint
 
@@ -29,7 +34,18 @@ func loggingMiddleware(logger log.Logger) Middleware {
 func main() {
 	logger := log.NewLogfmtLogger(os.Stderr)
 
-	svc := stringService{}
+	fieldKeys := []string{"method", "error"}
+	requestCount := kitprometheus.NewCounter(stdprometheus.CounterOpts{
+	// ...
+	}, fieldKeys)
+	requestLatency := metrics.NewTimeHistogram(time.Microsecond, kitprometheus.NewSummary(stdprometheus.SummaryOpts{
+	// ...
+	}, fieldKeys))
+
+	var svc StringService
+	svc = stringService{}
+	svc = loggingMiddlewareS{logger, svc}
+	svc = instrumentingMiddleware{requestCount, requestLatency, countResult, svc}
 
 	var uppercase endpoint.Endpoint
 	uppercase = makeUppercaseEndpoint(svc)
