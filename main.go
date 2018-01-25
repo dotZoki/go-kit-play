@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
+
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/metrics"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	httptransport "github.com/go-kit/kit/transport/http"
-	stdprometheus "github.com/prometheus/client_golang/prometheus"
 )
 
 // ------------------------------------------------

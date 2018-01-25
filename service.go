@@ -75,14 +75,15 @@ type instrumentingMiddleware struct {
 	next           StringService
 }
 
-func (mw instrumentingMiddleware) Uppercase(s string) (output string, err error) {
+func (mw instrumentingMiddleware) Uppercase(ctx context.Context, s string) (output string, err error) {
 	defer func(begin time.Time) {
-		lvs := []string{"method", "uppercase", "error", fmt.Sprint(err != nil)}
-		mw.requestCount.With(lvs...).Add(1)
-		mw.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+		methodField := metrics.Field{Key: "method", Value: "uppercase"}
+		errorField := metrics.Field{Key: "error", Value: fmt.Sprintf("%v", err)}
+		mw.requestCount.With(methodField).With(errorField).Add(1)
+		mw.requestLatency.With(methodField).With(errorField).Observe(time.Since(begin))
 	}(time.Now())
 
-	output, err = mw.next.Uppercase(s)
+	output, err = mw.next.Uppercase(ctx, s)
 	return
 }
 
